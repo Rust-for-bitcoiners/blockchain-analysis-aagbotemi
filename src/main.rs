@@ -1,7 +1,14 @@
 use std::{env, time};
 
-use bitcoincore_rpc::{json, jsonrpc::{self}, Auth, Client, RpcApi};
+use bitcoincore_rpc::{
+    bitcoin::{params::Params, Block, Network, Transaction},
+    json,
+    jsonrpc::{self},
+    Auth, Client, RpcApi,
+};
 use chrono::Duration;
+use rfb_2_2024_4::utils::{get_block, time_to_mine_block};
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -24,14 +31,30 @@ fn time_to_mine(block_height: u64) -> Duration {
     // when the lazy macro is expanded
     // if a value has a static lifetime then it means that value lives as long as the program lives
     let rpc_client: &Client = &*RPC_CLIENT;
-    rpc_client.get_block_hash(234);
-    todo!()
+    let block: Block = get_block(block_height, rpc_client).unwrap();
+    println!("block={:?}", block);
+    let params = Params::new(Network::Bitcoin);
+    println!("params={:?}", params);
+
+    let difficulty = block.header.difficulty(params);
+    // finding it difficult to get the hash_rate from the crate
+    let hash_rate = 1.0;
+
+    let time = time_to_mine_block(difficulty as f64, hash_rate);
+
+    // i was supposed to return the time variable returned from the helper function
+    // so, i decided to use the time in the block header for the main time.
+    // I will appreciate if I can get a pointer to clarify this solution.
+    Duration::new(block.header.time as i64, 1).unwrap()
 }
 
 // TODO: Task 2
 fn number_of_transactions(block_height: u64) -> u16 {
-    let some_value = Box::new(4 as u32);
-    todo!()
+    let rpc_client: &Client = &*RPC_CLIENT;
+    let block = get_block(block_height, rpc_client).unwrap();
+
+    let tx_data: Vec<Transaction> = block.txdata;
+    tx_data.len() as u16
 }
 
 fn main() {
@@ -39,10 +62,10 @@ fn main() {
     // println!("{:?}", res);
     const TIMEOUT_UTXO_SET_SCANS: time::Duration = time::Duration::from_secs(60 * 8); // 8 minutes
     dotenv::dotenv().ok();
-        let rpc_url: String = env::var("BITCOIN_RPC_URL").expect("BITCOIN_RPC_URL must be set");
-        let rpc_user: String = env::var("BITCOIN_RPC_USER").expect("BITCOIN_RPC_USER must be set");
-        let rpc_password: String =
-            env::var("BITCOIN_RPC_PASSWORD").expect("BITCOIN_RPC_PASSWORD must be set");
+    let rpc_url: String = env::var("BITCOIN_RPC_URL").expect("BITCOIN_RPC_URL must be set");
+    let rpc_user: String = env::var("BITCOIN_RPC_USER").expect("BITCOIN_RPC_USER must be set");
+    let rpc_password: String =
+        env::var("BITCOIN_RPC_PASSWORD").expect("BITCOIN_RPC_PASSWORD must be set");
 
     let custom_timeout_transport = jsonrpc::simple_http::Builder::new()
         .url(&rpc_url)
@@ -57,4 +80,9 @@ fn main() {
     let res: json::GetTxOutSetInfoResult =
         rpc_client.get_tx_out_set_info(None, None, None).unwrap();
     println!("{:?}", res);
+
+    let num_txn = number_of_transactions(10);
+    println!("num_txn={:?}", num_txn);
+    let time_to_mine = time_to_mine(10);
+    println!("time_to_mine={:?}", time_to_mine);
 }
