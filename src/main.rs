@@ -1,13 +1,13 @@
 use std::{env, time};
 
 use bitcoincore_rpc::{
-    bitcoin::{params::Params, Block, Network, Transaction},
+    bitcoin::{Block, Transaction},
     json,
     jsonrpc::{self},
     Auth, Client, RpcApi,
 };
 use chrono::Duration;
-use rfb_2_2024_4::utils::{get_block, time_to_mine_block};
+use rfb_2_2024_4::utils::get_block;
 
 #[macro_use]
 extern crate lazy_static;
@@ -31,21 +31,14 @@ fn time_to_mine(block_height: u64) -> Duration {
     // when the lazy macro is expanded
     // if a value has a static lifetime then it means that value lives as long as the program lives
     let rpc_client: &Client = &*RPC_CLIENT;
-    let block: Block = get_block(block_height, rpc_client).unwrap();
-    println!("block={:?}", block);
-    let params = Params::new(Network::Bitcoin);
-    println!("params={:?}", params);
+    let current_block: Block = get_block(block_height, rpc_client).unwrap();
+    let next_block: Block = get_block(block_height + 1, rpc_client).unwrap();
 
-    let difficulty = block.header.difficulty(params);
-    // finding it difficult to get the hash_rate from the crate
-    let hash_rate = 1.0;
+    let current_block_time = current_block.header.time;
+    let next_block_time = next_block.header.time;
 
-    let time = time_to_mine_block(difficulty as f64, hash_rate);
-
-    // i was supposed to return the time variable returned from the helper function
-    // so, i decided to use the time in the block header for the main time.
-    // I will appreciate if I can get a pointer to clarify this solution.
-    Duration::new(block.header.time as i64, 1).unwrap()
+    let time_to_mine_current_block = next_block_time - current_block_time;
+    Duration::new(time_to_mine_current_block.into(), 1).unwrap()
 }
 
 // TODO: Task 2
@@ -83,6 +76,6 @@ fn main() {
 
     let num_txn = number_of_transactions(10);
     println!("num_txn={:?}", num_txn);
-    let time_to_mine = time_to_mine(10);
+    let time_to_mine = time_to_mine(15);
     println!("time_to_mine={:?}", time_to_mine);
 }
