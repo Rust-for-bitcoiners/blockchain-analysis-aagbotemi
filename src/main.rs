@@ -4,7 +4,7 @@ use bitcoincore_rpc::{
     bitcoin::{Block, Transaction},
     json,
     jsonrpc::{self},
-    Auth, Client, RpcApi,
+    Auth, Client, Error, RpcApi,
 };
 use chrono::Duration;
 use rfb_2_2024_4::utils::get_block;
@@ -26,28 +26,28 @@ lazy_static! {
 // static client: Client = Client::new("url", Auth::UserPass("user".to_owned(), "password".to_owned())).unwrap();
 
 // TODO: Task 1
-fn time_to_mine(block_height: u64) -> Duration {
+fn time_to_mine(block_height: u64) -> Result<Duration, Error> {
     // * is a deref operator which invokes the Deref trait of the type RPC_CLIENT which was created
     // when the lazy macro is expanded
     // if a value has a static lifetime then it means that value lives as long as the program lives
     let rpc_client: &Client = &*RPC_CLIENT;
-    let current_block: Block = get_block(block_height, rpc_client).unwrap();
-    let prev_block: Block = get_block(block_height - 1, rpc_client).unwrap();
+    let current_block: Block = get_block(block_height, rpc_client)?;
+    let prev_block: Block = get_block(block_height - 1, rpc_client)?;
 
     let current_block_time = current_block.header.time;
     let prev_block_time = prev_block.header.time;
 
     let time_to_mine_current_block = current_block_time - prev_block_time;
-    Duration::new(time_to_mine_current_block.into(), 1).unwrap()
+    Ok(Duration::new(time_to_mine_current_block.into(), 1).unwrap())
 }
 
 // TODO: Task 2
-fn number_of_transactions(block_height: u64) -> u16 {
+fn number_of_transactions(block_height: u64) -> Result<u16, Error> {
     let rpc_client: &Client = &*RPC_CLIENT;
-    let block = get_block(block_height, rpc_client).unwrap();
+    let block = get_block(block_height, rpc_client)?;
 
     let tx_data: Vec<Transaction> = block.txdata;
-    tx_data.len() as u16
+    Ok(tx_data.len() as u16)
 }
 
 fn main() {
