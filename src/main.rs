@@ -32,12 +32,12 @@ fn time_to_mine(block_height: u64) -> Duration {
     // if a value has a static lifetime then it means that value lives as long as the program lives
     let rpc_client: &Client = &*RPC_CLIENT;
     let current_block: Block = get_block(block_height, rpc_client).unwrap();
-    let next_block: Block = get_block(block_height + 1, rpc_client).unwrap();
+    let prev_block: Block = get_block(block_height - 1, rpc_client).unwrap();
 
     let current_block_time = current_block.header.time;
-    let next_block_time = next_block.header.time;
+    let prev_block_time = prev_block.header.time;
 
-    let time_to_mine_current_block = next_block_time - current_block_time;
+    let time_to_mine_current_block = current_block_time - prev_block_time;
     Duration::new(time_to_mine_current_block.into(), 1).unwrap()
 }
 
